@@ -1,0 +1,39 @@
+name: AI Code Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize] 
+    # 'opened': Runs when you first create the PR
+    # 'synchronize': Runs again every time you push a new commit to the PR
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    
+    # IMPORTANT: These permissions allow the bot to read code AND write comments
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run AI Reviewer
+        env:
+          # GitHub provides this token automatically
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # You set this manually in Repo Settings
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # We pass the PR number and Repo name to the script
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: python main.py
