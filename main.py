@@ -14,34 +14,16 @@ PR_NUMBER = int(os.getenv('PR_NUMBER'))
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
 
-# --- THE MEME ENGINE (No API Key Required) ---
 def get_panic_gif(issue_count):
-    """
-    Returns a GIF url proportional to the number of bugs found.
-    """
     if issue_count == 0:
-        # Tier 0: Celebration / Chill
-        urls = [
-            "https://media.giphy.com/media/11ISwbgCx7UBCw/giphy.gif", # Minions cheering
-            "https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif", # Obama thumbs up
-            "https://media.giphy.com/media/LZElUsjl1Bu6c/giphy.gif"  # Shaq shimmy
-        ]
+        # Success Kid (Wikimedia)
+        return "https://upload.wikimedia.org/wikipedia/en/f/ff/SuccessKid.jpg"
     elif issue_count < 5:
-        # Tier 1: Mild Panic / Confusion
-        urls = [
-            "https://media.giphy.com/media/3o7TKr3nzbh5JE052w/giphy.gif", # Key and Peele sweating
-            "https://media.giphy.com/media/QMHoU66sBXqqLqYvGO/giphy.gif", # This is fine dog
-            "https://media.giphy.com/media/ma7VlDSlty3DO/giphy.gif"        # Math lady
-        ]
+        # Concerned Ape / Thinking
+        return "https://upload.wikimedia.org/wikipedia/commons/3/30/Filosof_penseur.jpg"
     else:
-        # Tier 2: Absolute Terror / Destruction
-        urls = [
-            "https://media.giphy.com/media/nrXif9YExO9EI/giphy.gif", # Donald Glover Fire
-            "https://media.giphy.com/media/tXL4FHPSnVJ0A/giphy.gif", # Kim K crying
-            "https://media.giphy.com/media/oe33xf3B50fsc/giphy.gif"  # Jonah Hill screaming
-        ]
-    
-    return random.choice(urls)
+        # The Scream (Panic)
+        return "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/The_Scream.jpg/471px-The_Scream.jpg"
 
 def get_diff(repo, pr_number):
     pr = repo.get_pull(pr_number)
