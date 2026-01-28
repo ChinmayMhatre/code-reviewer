@@ -13,7 +13,7 @@ PR_NUMBER = int(os.getenv('PR_NUMBER'))
 # Configure the Gemini Model
 # We use 'gemini-1.5-flash' because it's fast, free, and has a huge context window
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 def get_diff(repo, pr_number):
     """
