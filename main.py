@@ -1,122 +1,124 @@
 import os
 import json
+import random
 import google.generativeai as genai
 from github import Github
 
 # --- SETUP & CONFIGURATION ---
-# We grab API keys from the environment variables (set by GitHub Actions)
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 REPO_NAME = os.getenv('REPO_NAME')
 PR_NUMBER = int(os.getenv('PR_NUMBER'))
 
-# Configure the Gemini Model
-# We use 'gemini-1.5-flash' because it's fast, free, and has a huge context window
+# Use the Free Tier friendly alias
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
+<<<<<<< Updated upstream
+=======
+
+# --- THE MEME ENGINE (No API Key Required) ---
+def get_panic_gif(issue_count):
+    """
+    Returns a GIF url proportional to the number of bugs found.
+    """
+    if issue_count == 0:
+        # Tier 0: Celebration / Chill
+        urls = [
+            "https://media.giphy.com/media/11ISwbgCx7UBCw/giphy.gif", # Minions cheering
+            "https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif", # Obama thumbs up
+            "https://media.giphy.com/media/LZElUsjl1Bu6c/giphy.gif"  # Shaq shimmy
+        ]
+    elif issue_count < 5:
+        # Tier 1: Mild Panic / Confusion
+        urls = [
+            "https://media.giphy.com/media/3o7TKr3nzbh5JE052w/giphy.gif", # Key and Peele sweating
+            "https://media.giphy.com/media/QMHoU66sBXqqLqYvGO/giphy.gif", # This is fine dog
+            "https://media.giphy.com/media/ma7VlDSlty3DO/giphy.gif"        # Math lady
+        ]
+    else:
+        # Tier 2: Absolute Terror / Destruction
+        urls = [
+            "https://media.giphy.com/media/nrXif9YExO9EI/giphy.gif", # Donald Glover Fire
+            "https://media.giphy.com/media/tXL4FHPSnVJ0A/giphy.gif", # Kim K crying
+            "https://media.giphy.com/media/oe33xf3B50fsc/giphy.gif"  # Jonah Hill screaming
+        ]
+    
+    return random.choice(urls)
+>>>>>>> Stashed changes
 
 def get_diff(repo, pr_number):
-    """
-    Fetches the PR diff and filters out non-code files (images, lockfiles).
-    This reduces noise and saves tokens.
-    """
     pr = repo.get_pull(pr_number)
     diff_content = ""
-    
     print(f"Processing PR #{pr_number}...")
 
     for file in pr.get_files():
-        # FILTERING LOGIC:
-        # We skip images and lockfiles. Entelligence cares about "High Signal".
-        # Reviewing a 5,000 line package-lock.json is "Low Signal".
         if file.filename.endswith(('.png', '.jpg', '.lock', '.json', '.svg')):
-            print(f"Skipping {file.filename} (Binary/Config)")
+            print(f"Skipping {file.filename}")
             continue
-            
-        # We include the filename so the AI knows which file it is reviewing
         diff_content += f"\nFile: {file.filename}\n{file.patch}\n"
     
     return pr, diff_content
 
 def analyze_diff(diff):
-    """
-    Sends the diff to Gemini with a specific 'System Prompt'.
-    We force the AI to return JSON so we can parse it programmatically.
-    """
     prompt = f"""
     You are a Senior Software Engineer doing a code review.
     Analyze the following git diffs.
     
     YOUR RULES:
-    1. Focus on SUBSTANTIAL issues: Bugs, Security vulnerabilities, Performance issues, Race conditions.
-    2. IGNORE trivial issues: Formatting, missing comments, variable naming preferences.
-    3. If the code looks good, return an empty list. Do not hallucinate issues.
+    1. Focus on SUBSTANTIAL issues: Bugs, Security, Performance.
+    2. IGNORE trivial issues: Formatting, missing comments.
+    3. If the code looks good, return an empty list.
     
     OUTPUT FORMAT:
-    You must respond strictly in JSON format. Do not add markdown like ```json```.
-    The format should be a list of objects:
+    Respond strictly in JSON format as a list of objects:
     [
-        {{"file": "filename.py", "line": 10, "comment": "This loop is O(n^2), consider using a hash map."}},
-        {{"file": "filename.py", "line": 45, "comment": "Potential SQL Injection vulnerability here."}}
+        {{"file": "filename.py", "line": 10, "comment": "Issue description"}}
     ]
 
-    Here is the diff to review:
+    Here is the diff:
     {diff}
     """
-    
-    # We ask Gemini to generate the content
     response = model.generate_content(prompt)
-    
-    # Cleaning the response in case the model adds markdown backticks
     clean_response = response.text.replace("```json", "").replace("```", "").strip()
     return clean_response
 
 def post_comment(pr, analysis_json):
-    """
-    Parses the JSON and posts a summary comment on the PR.
-    """
     try:
         comments = json.loads(analysis_json)
+        issue_count = len(comments)
         
-        # Build the Markdown comment
-        comment_body = "## 🤖 AI Code Reviewer Report\n\n"
+        # 1. Get the Image
+        gif_url = get_panic_gif(issue_count)
         
-        if not comments:
+        # 2. Build the Header
+        comment_body = f"## 🤖 AI Code Reviewer Report\n"
+        comment_body += f"![Reaction]({gif_url})\n\n" # Inject Image Here
+        
+        # 3. Build the Body
+        if issue_count == 0:
             comment_body += "✅ **LGTM!** No critical issues found."
         else:
-            comment_body += "I found the following issues:\n\n"
+            comment_body += f"### 🚨 I found {issue_count} issues:\n\n"
             for item in comments:
-                # We link the file and line number for clarity
                 comment_body += f"- **{item['file']}** (Line {item.get('line', '?')}): {item['comment']}\n"
             
             comment_body += "\n---\n*Generated by Gemini 1.5 Flash*"
 
-        # Post the comment to the GitHub PR
         pr.create_issue_comment(comment_body)
         print("Comment posted successfully.")
 
     except json.JSONDecodeError:
-        print("Failed to parse AI response. Raw response was:")
-        print(analysis_json)
-        # Fallback: Post the raw text if JSON parsing fails
+        print("Failed to parse AI response.")
         pr.create_issue_comment(f"## 🤖 AI Review (Raw Output)\n\n{analysis_json}")
 
-# --- MAIN EXECUTION FLOW ---
 if __name__ == "__main__":
-    # 1. Connect to GitHub
     g = Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
-
-    # 2. Get the Diff
     pr, diff_data = get_diff(repo, PR_NUMBER)
 
     if not diff_data:
-        print("No code changes detected (or only excluded files).")
+        print("No code changes detected.")
     else:
-        # 3. Analyze with AI
-        print("Sending diff to Gemini...")
+        print("Analyzing with Gemini...")
         analysis = analyze_diff(diff_data)
-        
-        # 4. Post Results
-        print("Posting results...")
         post_comment(pr, analysis)
