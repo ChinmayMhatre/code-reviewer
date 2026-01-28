@@ -13,8 +13,6 @@ PR_NUMBER = int(os.getenv('PR_NUMBER'))
 # Use the Free Tier friendly alias
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
-<<<<<<< Updated upstream
-=======
 
 # --- THE MEME ENGINE (No API Key Required) ---
 def get_panic_gif(issue_count):
@@ -44,7 +42,6 @@ def get_panic_gif(issue_count):
         ]
     
     return random.choice(urls)
->>>>>>> Stashed changes
 
 def get_diff(repo, pr_number):
     pr = repo.get_pull(pr_number)
